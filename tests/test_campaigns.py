@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 import pytest
 from app.main import app
 from app.routers.campaigns import campaigns_db
+from unittest.mock import MagicMock, patch
 
 client = TestClient(app)
 
@@ -147,4 +148,26 @@ def test_delete_campaign():
 
     get_response = client.get(f"/campaigns/{campaign_id}")
     assert get_response.status_code == 404
+
+
+def test_analyse_campaign():
+    payload = {
+        "name": "Nike Summer 2026",
+        "budget": 50000.0,
+        "channel": "Instagram"
+    }
+    create_response = client.post("/campaigns/", json=payload)
+    assert create_response.status_code == 201
+    campaign_id = create_response.json()["id"]
+
+    mock_message = MagicMock()
+    mock_message.content[0].text = "Great campaign with strong potential."
+    with patch("app.routers.analyse.client.messages.create", return_value=mock_message):
+        response = client.post(f"/campaigns/{campaign_id}/analyse")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["campaign_id"] == campaign_id
+    assert data["analyse"] == "Great campaign with strong potential."
+
+
     
