@@ -37,7 +37,32 @@ def test_create_campaign():
     assert data["channel"] == "Instagram"
     assert data["is_active"] == True
     assert data["id"] is not None
-    
+
+def test_create_campaign_validation():
+    invalid_budget_payload = {
+        "name": "Nike Summer 2026",
+        "budget": -50000.0,
+        "channel": "Instagram"
+    }
+    invalid_budget_response = client.post("/campaigns/", json=invalid_budget_payload)
+    assert invalid_budget_response.status_code == 422
+
+    invalid_channel_payload = {
+        "name": "Nike Summer 2026",
+        "budget": 50000.0,
+        "channel": "Snapchat"
+    }
+    invalid_channel_response = client.post("/campaigns/", json=invalid_channel_payload)
+    assert invalid_channel_response.status_code == 422
+
+    invalid_name_payload = {
+        "name": "Ni",
+        "budget": 50000.0,
+        "channel": "YouTube"
+    }
+    invalid_name_response = client.post("/campaigns/", json=invalid_name_payload)
+    assert invalid_name_response.status_code == 422
+
 
 def test_get_campaign():
     payload = {
@@ -58,6 +83,28 @@ def test_get_campaign_not_found():
     get_response = client.get("/campaigns/999")
     assert get_response.status_code == 404
     assert get_response.json()["detail"] == "Campaign not found"
+
+
+def test_filter_by_channel():
+    client.post("/campaigns/", json={"name": "Nike Summer", "budget": 50000, "channel": "Instagram"})
+    client.post("/campaigns/", json={"name": "Adidas Launch", "budget": 30000, "channel": "Youtube"})
+
+    response = client.get("/campaigns/?channel=Instagram")
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) == 1
+    assert results[0]["channel"] == "Instagram"
+
+def test_filter_by_is_active():
+     client.post("/campaigns/", json={"name": "Nike Summer", "budget": 50000, "channel": "Instagram", "is_active": True})
+     client.post("/campaigns/", json={"name": "Puma Winter", "budget": 20000, "channel": "Instagram", "is_active": False})
+
+     response = client.get("/campaigns/?is_active=True")
+     assert response.status_code == 200
+     results = response.json()
+     assert len(results) == 1
+     assert results[0]["name"] == "Nike Summer"
+
 
 
 def test_update_campaign():

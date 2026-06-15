@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 from app.models import Campaign
 
@@ -9,8 +11,16 @@ next_id: int = 1
 
 
 @router.get("/", response_model=list[Campaign])
-def get_all_campaigns():
-    return list(campaigns_db.values())
+def get_all_campaigns(channel: Optional[str] = None, is_active: Optional[bool] = None):
+    results = list(campaigns_db.values())
+
+    if channel is not None:
+        results = [c for c in results if c.channel == channel]
+    
+    if is_active is not None:
+        results = [c for c in results if c.is_active == is_active]
+
+    return results
 
 
 @router.get("/{campaign_id}", response_model=Campaign)
